@@ -1,0 +1,6 @@
+.res LOCAL_FILES_BIN
+.ubin
+.include "LocalFiles.bin"
+
+.res PARTICLE_IMAGE
+.image "../LocalFiles/RES/particle.png"

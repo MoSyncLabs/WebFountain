@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+		<title>Particles</title>
+		<!-- Import MoSync JavaScript library. -->
+		<script src="js/bridge.js"></script>
+
+		<!-- JavaScript goes here -->
+		<script type="text/javascript">
+			var MAX_PARTICLES = 65;
+			var MIN_FLOW = 1;
+			var MAX_FLOW = 10;
+			var GRAVITY_SCALE = 0.002;
+			var INIT_VELOCITY = 1.5;
+
+			var innerWidth = window.innerWidth - 10;
+			var innerHeight = window.innerHeight - 10;
+			
+			var flow = MIN_FLOW; //Particles per second
+			
+			var PARTICLE_LIFETIME = 5000;
+			
+			setInterval(timedFunc, 10);
+
+			particle = new Image();
+			particle.src = 'Res/particle.png';
+
+			frames = 0;
+			fps = 0;
+
+			var particles;
+					
+			function increaseFlow()
+			{
+				if(flow < MAX_FLOW)
+				{
+					flow += 1;
+					handleButtons();
+				}
+			}
+			
+			function decreaseFlow()
+			{
+				if(flow > MIN_FLOW)
+				{
+					flow -= 1;
+					handleButtons();
+				}
+			}
+			
+			var render = true;
+			function shouldRender(r)
+			{
+				render =  r;
+			}
+			
+			var prevTime = new Date().getTime();
+			
+			function timedFunc()
+			{
+				if(render)
+				{
+					var currentTime = new Date().getTime();
+					addNewParticles(currentTime);
+					draw(currentTime);
+					removeOldParticles(currentTime);
+					prevTime = currentTime;
+				}
+			}
+			
+			var timeToNextParticle = 0;
+			
+			function addNewParticles(currentTime)
+			{
+				timeToNextParticle += currentTime - prevTime;
+				if(timeToNextParticle > 1000 / flow)
+				{
+					for(var i = 0; i < particles.length; i++)
+					{
+						var p = particles[i];
+						if(p.alive == false)
+						{
+							p.alive = true;
+							p.addTime = currentTime;
+							var phi = 2*Math.PI * Math.random();
+							var theta = (Math.PI/16) * Math.random();
+							p.xv = INIT_VELOCITY * Math.sin(theta) * Math.cos(phi);
+							p.yv = INIT_VELOCITY * Math.sin(theta) * Math.sin(phi);
+							p.zv = INIT_VELOCITY * Math.cos(theta);
+							p.x = 0;
+							p.y = 0;
+							p.z = 0;
+							break;
+						}
+					}
+					timeToNextParticle = 0;
+				}
+			}
+			
+			function removeOldParticles(currentTime)
+			{	
+				for(var i = 0; i < particles.length; i++)
+				{
+					var p = particles[i];
+					if(p.alive == true && 
+							(p.addTime + PARTICLE_LIFETIME < currentTime || p.z < 0))
+					{
+						p.alive = false;
+					}
+				}
+			}
+
+			var enableButtonsMessage = new Array();
+			enableButtonsMessage["messageName"] = "enableButtons";
+
+			function handleButtons()
+			{
+				enableButtonsMessage["add"] = "true";
+				enableButtonsMessage["remove"] = "true";
+				
+				if(flow >= MAX_FLOW)
+				{
+					enableButtonsMessage["add"] = "false";
+				}
+				else if(flow <= MIN_FLOW)
+				{
+					enableButtonsMessage["remove"] = "false";
+				}
+				bridge.messagehandler.send(enableButtonsMessage);
+			}
+
+			/**
+			 * Renders a particle object. The 'dots' argument
+			 * should be an array of objects which have members
+			 * x, y, width, height
+			 **/
+			function renderParticleObject(gfx, particles) {
+
+				for(var i = 0; i < particles.length; i++) {
+					var p = particles[i];
+					if(p.alive ==true && p.z > 0)
+					{
+						gfx.drawImage(particle, 
+								p.x - p.z/2 + innerWidth/2, 
+								p.y - p.z/2 + innerHeight/2, 
+								p.z, p.z);
+					}
+				}
+			}
+			
+			var ax = 0;
+			var ay = 0;
+			var az = 0;
+			
+			function setGravity(gx,gy,gz)
+			{
+				ax = gx * GRAVITY_SCALE;
+				ay = -gy * GRAVITY_SCALE;
+				az = gz * GRAVITY_SCALE;
+			}
+			
+			function draw(currentTime){
+				var canvas = document.getElementById('gfx');
+				
+				canvas.width  = innerWidth;
+				canvas.height = innerHeight;
+
+				if (canvas.getContext){
+					var gfx = canvas.getContext('2d');
+
+					gfx.globalCompositeOperation = 'source-over';
+					gfx.fillStyle = '#000';
+					gfx.fillRect(0, 0, innerWidth, innerHeight);
+					gfx.save(); // push state
+
+					var twoPI = 2*Math.PI;
+
+					gfx.globalCompositeOperation = 'lighter';
+
+					var cycleTime = (currentTime - prevTime);
+					for(var i = 0; i < particles.length; i++) {
+						var p = particles[i];
+						if(p.alive ==true)
+						{
+							var particleTime = cycleTime;
+							if(p.addTime > prevTime)
+							{
+								particleTime = (currentTime - p.addTime);
+							}
+							p.zv += az*particleTime;
+							p.xv += ax*particleTime;
+							p.yv += ay*particleTime;
+							
+							p.z += p.zv*particleTime;
+							p.x += p.xv*particleTime;
+							p.y += p.yv*particleTime;
+							
+						}
+
+					}
+
+					renderParticleObject(gfx, particles);
+
+					gfx.fillStyle = '#fff';
+
+					gfx.restore();
+					frames++;
+
+					//fps = 1000 * frames / (time - startTime);
+				}
+			}
+
+			function init(maxParticles, minFlow, maxFlow,
+					particleLifetime, gravityScale, initVelocity)
+			{
+				MAX_PARTICLES = maxParticles;
+				MIN_FLOW = minFlow;
+				MAX_FLOW = maxFlow;
+				GRAVITY_SCALE = gravityScale;
+				INIT_VELOCITY = initVelocity;
+				PARTICLE_LIFETIME = particleLifetime;
+				particles = new Array(MAX_PARTICLES);
+				for(var i = 0; i < MAX_PARTICLES; i++)
+				{
+					particles[i] = new Object();
+					particles[i].alive = false;
+				}
+				handleButtons();
+			}
+			
+			function pageLoaded()
+			{
+				var message = new Array();
+				message["messageName"] = "pageLoaded";
+				bridge.messagehandler.send(message);
+			}
+		</script>
+		
+	</head>
+	
+	
+	
+	
+	
+	
+	
+	
+	<body onload="pageLoaded()" style="background-color:black">
+		<canvas id="gfx"/>
+	</body>
+</html>
