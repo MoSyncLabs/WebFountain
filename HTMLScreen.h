@@ -7,6 +7,7 @@
 
 #include <Wormhole/FileUtil.h>
 #include <NativeUI/Widgets.h>
+#include "OGLScreen.h"
 
 // Namespaces we want to access.
 using namespace MAUtil; // Class Moblet
@@ -20,7 +21,7 @@ class HTMLScreen : public Screen, public ButtonListener, public SensorListener, 
 {
 public:
 	HTMLScreen(int maxParticles, int minFlow, int maxFlow,
-			int particleLifetime, float gravityScale, float initVelocity);
+			int particleLifetime, float gravityScale, float initVelocity, OGLScreen *oglScreen);
 
 	~HTMLScreen();
 
@@ -43,6 +44,8 @@ private:
 	bool mShouldRender;
 
 	char mBuffer[128];
+
+	OGLScreen *mOGLScreen;
 };
 
 

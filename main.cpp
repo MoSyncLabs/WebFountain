@@ -30,12 +30,13 @@ public:
 
 		// Extract bundled files to the local file system.
 		mFileUtil->extractLocalFiles();
-		mHTMLScreen = new HTMLScreen(MAX_PARTICLES, MIN_FLOW, MAX_FLOW,
-									PARTICLE_LIFETIME, GRAVITY_SCALE,
-									INIT_VELOCITY);
 		mOGLScreen = new OGLScreen(MAX_PARTICLES, MIN_FLOW, MAX_FLOW,
 								PARTICLE_LIFETIME, GRAVITY_SCALE,
 								INIT_VELOCITY, PARTICLE_IMAGE);
+		mHTMLScreen = new HTMLScreen(MAX_PARTICLES, MIN_FLOW, MAX_FLOW,
+									PARTICLE_LIFETIME, GRAVITY_SCALE,
+									INIT_VELOCITY, mOGLScreen);
+
 		Environment::getEnvironment().addSensorListener(mHTMLScreen);
 		Environment::getEnvironment().addSensorListener(mOGLScreen);
 		maSensorStart(1, 100);

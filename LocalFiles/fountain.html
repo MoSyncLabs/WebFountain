@@ -30,7 +30,13 @@
 			frames = 0;
 			fps = 0;
 
-			var particles;
+			var particles = new Array(MAX_PARTICLES);
+			for(var i = 0; i < MAX_PARTICLES; i++)
+			{
+				particles[i] = new Object();
+				particles[i].alive = false;
+			}
+			
 					
 			function increaseFlow()
 			{
@@ -60,17 +66,21 @@
 			
 			function timedFunc()
 			{
+				
+				var currentTime = new Date().getTime();
+				addNewParticles(currentTime);
+				removeOldParticles(currentTime);
 				if(render)
 				{
-					var currentTime = new Date().getTime();
-					addNewParticles(currentTime);
 					draw(currentTime);
-					removeOldParticles(currentTime);
-					prevTime = currentTime;
 				}
+				
+				prevTime = currentTime;
 			}
 			
 			var timeToNextParticle = 0;
+			var newParticleMessage = new Array();
+			newParticleMessage["messageName"] = "newParticle";
 			
 			function addNewParticles(currentTime)
 			{
@@ -92,6 +102,15 @@
 							p.x = 0;
 							p.y = 0;
 							p.z = 0;
+							
+							newParticleMessage["xv"] = Math.floor(p.xv * 1000);
+							newParticleMessage["yv"] = Math.floor(p.yv * 1000);
+							newParticleMessage["zv"] = Math.floor(p.zv * 1000);
+							newParticleMessage["x"] = Math.floor(p.x);
+							newParticleMessage["y"] = Math.floor(p.y);
+							newParticleMessage["z"] = Math.floor(p.z);
+							
+							bridge.messagehandler.send(newParticleMessage);
 							break;
 						}
 					}
@@ -211,30 +230,20 @@
 					//fps = 1000 * frames / (time - startTime);
 				}
 			}
-
-			function init(maxParticles, minFlow, maxFlow,
-					particleLifetime, gravityScale, initVelocity)
-			{
-				MAX_PARTICLES = maxParticles;
-				MIN_FLOW = minFlow;
-				MAX_FLOW = maxFlow;
-				GRAVITY_SCALE = gravityScale;
-				INIT_VELOCITY = initVelocity;
-				PARTICLE_LIFETIME = particleLifetime;
-				particles = new Array(MAX_PARTICLES);
-				for(var i = 0; i < MAX_PARTICLES; i++)
-				{
-					particles[i] = new Object();
-					particles[i].alive = false;
-				}
-				handleButtons();
-			}
 			
 			function pageLoaded()
 			{
-				var message = new Array();
-				message["messageName"] = "pageLoaded";
-				bridge.messagehandler.send(message);
+				handleButtons();
+				var initOGLMessage = new Array();
+				initOGLMessage["messageName"] = "initOGLVariables";
+				initOGLMessage["MAX_PARTICLES"] = MAX_PARTICLES;
+				initOGLMessage["GRAVITY_SCALE"] = GRAVITY_SCALE * 1000;
+				initOGLMessage["PARTICLE_LIFETIME"] = PARTICLE_LIFETIME;
+				initOGLMessage["SCREN_WIDTH"] = innerWidth;
+				initOGLMessage["SCREEN_HEIGHT"] = innerHeight;
+				
+				bridge.messagehandler.send(initOGLMessage);
+				
 			}
 		</script>
 		

@@ -14,7 +14,7 @@ using namespace NativeUI; // WebView widget.
 using namespace Wormhole; // Class WebAppMoblet
 
 HTMLScreen::HTMLScreen(int maxParticles, int minFlow, int maxFlow,
-		int particleLifetime, float gravityScale, float initVelocity):Screen()
+		int particleLifetime, float gravityScale, float initVelocity, OGLScreen *oglScreen):Screen()
 {
 	createUI();
 	// Enable message sending from JavaScript to C++.
@@ -32,7 +32,7 @@ HTMLScreen::HTMLScreen(int maxParticles, int minFlow, int maxFlow,
 	// The page in the "LocalFiles" folder to
 	// show when the application starts.
 	mWebView->openURL("fountain.html");
-
+	mOGLScreen = oglScreen;
 	sprintf(mBuffer,"init(%d, %d, %d, %d, %f, %f)", maxParticles, minFlow, maxFlow,
 								particleLifetime, gravityScale, initVelocity);
 }
@@ -111,10 +111,27 @@ void HTMLScreen::webViewHookInvoked(WebView* webView, int hookType, MAHandle url
 		}
 	}
 
-	if (message.is("pageLoaded"))
+	if (message.is("initOGLVariables"))
 	{
-		mWebView->callJS(mBuffer);
-		shouldRender(mShouldRender);
+		mOGLScreen->initVariables(
+				message.getParamInt("MAX_PARTICLES"),
+				message.getParamInt("PARTICLE_LIFETIME"),
+				message.getParamInt("GRAVITY_SCALE")/(float)1000,
+				message.getParamInt("SCREN_WIDTH"),
+				message.getParamInt("SCREEN_HEIGHT")
+		);
+	}
+
+	if (message.is("newParticle"))
+	{
+		mOGLScreen->addNewParticles(
+				message.getParamInt("x"),
+				message.getParamInt("y"),
+				message.getParamInt("z"),
+				message.getParamInt("xv")/(float)1000,
+				-message.getParamInt("yv")/(float)1000,
+				message.getParamInt("zv")/(float)1000
+		);
 	}
 
 	// Tell the WebView that we have processed the message, so that

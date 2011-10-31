@@ -30,14 +30,16 @@ OGLScreen::OGLScreen(int maxParticles, int minFlow, int maxFlow,
 {
 	mParticleImageHandle = particleImage;
 	mGLViewInitialized = false;
+	mEnvironmentInitialized = false;
+	mVariablesInitialized = false;
 	mShouldRender = false;
 	ax = ay = az = 0;
 
-	mParticles = new particle[MAX_PARTICLES];
+	/*mParticles = new particle[MAX_PARTICLES];
 	for(int i = 0; i < MAX_PARTICLES; i++)
 	{
 		mParticles[i].alive = false;
-	}
+	}*/
 
 	mFlow = MIN_FLOW;
 
@@ -126,16 +128,34 @@ void OGLScreen::glViewReady(GLView* glView)
 	// Create the texture we will use for rendering.
 	createTexture();
 
-	// Set the GL viewport.
-	int viewWidth = mInnerWidth = glView->getWidth();
-	int viewHeight = glView->getHeight();
-	setViewport(viewWidth, viewHeight);
+	// Flag that the GLView has been initialized.
+	mGLViewInitialized = true;
 
 	// Initialize OpenGL.
 	initGL();
+}
 
-	// Flag that the GLView has been initialized.
-	mGLViewInitialized = true;
+void OGLScreen::initVariables(int maxParticles, int particleLifetime, float gravityScale, int screenWidth, int screenHeight)
+{
+	MAX_PARTICLES = maxParticles;
+	PARTICLE_LIFETIME = particleLifetime;
+
+	GRAVITY_SCALE = gravityScale;
+
+	SCREN_WIDTH = screenWidth;
+
+	SCREEN_HEIGHT = screenHeight;
+
+	mParticles = new particle[MAX_PARTICLES];
+	for(int i = 0; i < MAX_PARTICLES; i++)
+	{
+		mParticles[i].alive = false;
+	}
+
+	mVariablesInitialized = true;
+
+	// Initialize OpenGL.
+	initGL();
 }
 
 /**
@@ -165,7 +185,7 @@ void OGLScreen::setViewport(int width, int height)
 		height = 1;
 	}
 	// Set viewport.
-	glViewport(0, 0, (GLint)width, (GLint)height);
+	glViewport(0, 0, (GLint)mGLView->getWidth(), (GLint)mGLView->getHeight());
 
 	// Select the projection matrix.
 	glMatrixMode(GL_PROJECTION);
@@ -192,6 +212,12 @@ void OGLScreen::setViewport(int width, int height)
  */
 void OGLScreen::initGL()
 {
+	if(!(mGLViewInitialized && mVariablesInitialized))
+	{
+		return;
+	}
+
+	setViewport(SCREN_WIDTH, SCREEN_HEIGHT);
     // Enable texture mapping.
     glEnable(GL_TEXTURE_2D);
 
@@ -204,6 +230,8 @@ void OGLScreen::initGL()
 	glEnable(GL_BLEND);
 
 	glBlendFunc(GL_ONE, GL_ONE);
+
+	mEnvironmentInitialized = true;
 
 	// Enable depth testing.
 	//glEnable(GL_DEPTH_TEST);
@@ -253,7 +281,7 @@ void OGLScreen::renderParticleObject()
 			// Enable vertex and texture coord arrays.
 
 			glTranslatef(mParticles[i].x, mParticles[i].y, 0.0f);
-			glScalef(mParticles[i].z, mParticles[i].z, 0.0f);
+			glScalef(mParticles[i].z / 2, mParticles[i].z / 2, 0.0f);
 
 			// This draws the particle.
 			glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_BYTE, indices);
@@ -273,7 +301,7 @@ void OGLScreen::renderParticleObject()
 void OGLScreen::draw(int currentTime)
 {
 	// The GL_View must be initialized before we can do any drawing.
-	if (!mGLViewInitialized)
+	if (!mEnvironmentInitialized)
 	{
 		return;
 	}
@@ -338,37 +366,32 @@ void OGLScreen::runTimerEvent()
 	if(mShouldRender)
 	{
 		int currentTime = maGetMilliSecondCount();
-		addNewParticles(currentTime);
+		//addNewParticles(currentTime);
 		draw(currentTime);
 		removeOldParticles(currentTime);
 		mPrevTime = currentTime;
 	}
 }
 
-void OGLScreen::addNewParticles(int currentTime)
+void OGLScreen::addNewParticles(float x, float y, float z, float xv, float yv, float zv)
 {
-	mTimeToNextParticle += currentTime - mPrevTime;
-	if(mTimeToNextParticle > 1000 / mFlow)
-	{
+		int currentTime = maGetMilliSecondCount();
+
 		for(int i = 0; i < MAX_PARTICLES; i++)
 		{
 			if(!mParticles[i].alive)
 			{
 				mParticles[i].alive = true;
 				mParticles[i].addTime = currentTime;
-				float phi = 2*M_PI * rand() / (float)RAND_MAX;
-				float theta = (M_PI/16) * rand() / (float)RAND_MAX;
-				mParticles[i].xv = INIT_VELOCITY * sin(theta) * cos(phi);
-				mParticles[i].yv = INIT_VELOCITY * sin(theta) * sin(phi);
-				mParticles[i].zv = INIT_VELOCITY * cos(theta);
-				mParticles[i].x = 0;
-				mParticles[i].y = 0;
-				mParticles[i].z = 0;
+				mParticles[i].xv = xv;
+				mParticles[i].yv = yv;
+				mParticles[i].zv = zv;
+				mParticles[i].x = x;
+				mParticles[i].y = y;
+				mParticles[i].z = z;
 				break;
 			}
 		}
-		mTimeToNextParticle = 0;
-	}
 }
 
 void OGLScreen::removeOldParticles(int currentTime)

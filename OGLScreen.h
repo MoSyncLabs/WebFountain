@@ -50,11 +50,15 @@ public:
 
 	virtual void glViewReady(GLView* glView);
 
+	void initVariables(int maxParticles, int particleLifetime, float gravityScale, int screenWidth, int screenHeight);
+
 	void createTexture();
 
 	void setViewport(int width, int height);
 
 	void initGL();
+
+
 
 	void draw(int currentTime);
 
@@ -64,7 +68,7 @@ public:
 
 	virtual void runTimerEvent();
 
-	void addNewParticles(int currentTime);
+	void addNewParticles(float x, float y, float z, float xv, float yv, float zv);
 
 	void removeOldParticles(int currentTime);
 private:
@@ -75,6 +79,10 @@ private:
 	GLuint mParticleTexture;
 
 	bool mGLViewInitialized;
+
+	bool mVariablesInitialized;
+
+	bool mEnvironmentInitialized;
 
 	GLView* mGLView;
 
@@ -103,6 +111,10 @@ private:
 	float GRAVITY_SCALE;
 
 	float INIT_VELOCITY;
+
+	int SCREN_WIDTH;
+
+	int SCREEN_HEIGHT;
 };
 
 
