@@ -13,8 +13,7 @@ using namespace MAUtil; // Class Moblet
 using namespace NativeUI; // WebView widget.
 using namespace Wormhole; // Class WebAppMoblet
 
-HTMLScreen::HTMLScreen(int maxParticles, int minFlow, int maxFlow,
-		int particleLifetime, float gravityScale, float initVelocity, OGLScreen *oglScreen):Screen()
+HTMLScreen::HTMLScreen(OGLScreen *oglScreen):Screen()
 {
 	createUI();
 	// Enable message sending from JavaScript to C++.
@@ -33,8 +32,6 @@ HTMLScreen::HTMLScreen(int maxParticles, int minFlow, int maxFlow,
 	// show when the application starts.
 	mWebView->openURL("fountain.html");
 	mOGLScreen = oglScreen;
-	sprintf(mBuffer,"init(%d, %d, %d, %d, %f, %f)", maxParticles, minFlow, maxFlow,
-								particleLifetime, gravityScale, initVelocity);
 }
 
 HTMLScreen::~HTMLScreen()
@@ -92,28 +89,33 @@ void HTMLScreen::webViewHookInvoked(WebView* webView, int hookType, MAHandle url
 		{
 			mAddButton->setEnabled(true);
 			mAddButton->setFontColor(0x000000);
+			mOGLScreen->enableAddButton(true);
 		}
 		else
 		{
 			mAddButton->setEnabled(false);
 			mAddButton->setFontColor(0x969696);
+			mOGLScreen->enableAddButton(false);
 		}
 
 		if(message.getParam("remove") == "true")
 		{
 			mRemoveButton->setEnabled(true);
 			mRemoveButton->setFontColor(0x000000);
+			mOGLScreen->enableRemoveButton(true);
 		}
 		else
 		{
 			mRemoveButton->setEnabled(false);
 			mRemoveButton->setFontColor(0x969696);
+			mOGLScreen->enableRemoveButton(false);
 		}
 	}
 
 	if (message.is("initOGLVariables"))
 	{
 		mOGLScreen->initVariables(
+				this,
 				message.getParamInt("MAX_PARTICLES"),
 				message.getParamInt("PARTICLE_LIFETIME"),
 				message.getParamInt("GRAVITY_SCALE")/(float)1000,
@@ -147,6 +149,11 @@ void HTMLScreen::buttonClicked(Widget* button)
 	else if(button == mRemoveButton){
 		mWebView->callJS("decreaseFlow()");
 	}
+}
+
+WebView* HTMLScreen::getWebView()
+{
+	return mWebView;
 }
 
 void HTMLScreen::sensorEvent(MASensor a)

@@ -30,12 +30,8 @@ public:
 
 		// Extract bundled files to the local file system.
 		mFileUtil->extractLocalFiles();
-		mOGLScreen = new OGLScreen(MAX_PARTICLES, MIN_FLOW, MAX_FLOW,
-								PARTICLE_LIFETIME, GRAVITY_SCALE,
-								INIT_VELOCITY, PARTICLE_IMAGE);
-		mHTMLScreen = new HTMLScreen(MAX_PARTICLES, MIN_FLOW, MAX_FLOW,
-									PARTICLE_LIFETIME, GRAVITY_SCALE,
-									INIT_VELOCITY, mOGLScreen);
+		mOGLScreen = new OGLScreen(PARTICLE_IMAGE);
+		mHTMLScreen = new HTMLScreen(mOGLScreen);
 
 		Environment::getEnvironment().addSensorListener(mHTMLScreen);
 		Environment::getEnvironment().addSensorListener(mOGLScreen);
@@ -84,18 +80,6 @@ private:
 	FileUtil* mFileUtil;
 
 	TabScreen* mTabScreen;
-
-	static const int MAX_PARTICLES = 65;
-
-	static const int MIN_FLOW = 1;
-
-	static const int MAX_FLOW = 10;
-
-	static const int PARTICLE_LIFETIME = 5000;
-
-	static const float GRAVITY_SCALE = 0.002;
-
-	static const float INIT_VELOCITY = 1.5;
 };
 
 /**

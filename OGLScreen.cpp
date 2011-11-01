@@ -9,24 +9,13 @@
 #include "OGLScreen.h"
 
 #include <madmath.h>
-#include <Wormhole/WebViewMessage.h>
 
 // Namespaces we want to access.
 using namespace MAUtil; // Class Moblet
 using namespace NativeUI; // WebView widget.
-using namespace Wormhole; // Class WebAppMoblet
 
 
-OGLScreen::OGLScreen(int maxParticles, int minFlow, int maxFlow,
-		int particleLifetime, float gravityScale, float initVelocity,
-		MAHandle particleImage):
-		Screen(),
-		MAX_PARTICLES(maxParticles),
-		MIN_FLOW(minFlow),
-		MAX_FLOW(maxFlow),
-		PARTICLE_LIFETIME(particleLifetime),
-		GRAVITY_SCALE(gravityScale),
-		INIT_VELOCITY(initVelocity)
+OGLScreen::OGLScreen(MAHandle particleImage): Screen()
 {
 	mParticleImageHandle = particleImage;
 	mGLViewInitialized = false;
@@ -35,33 +24,10 @@ OGLScreen::OGLScreen(int maxParticles, int minFlow, int maxFlow,
 	mShouldRender = false;
 	ax = ay = az = 0;
 
-	/*mParticles = new particle[MAX_PARTICLES];
-	for(int i = 0; i < MAX_PARTICLES; i++)
-	{
-		mParticles[i].alive = false;
-	}*/
-
-	mFlow = MIN_FLOW;
-
 	createUI();
-	// Enable message sending from JavaScript to C++.
-	mWebView->enableWebViewMessages();
 
-	// Remove this line to enable the user to
-	// zoom the web page. To disable zoom is one
-	// way of making web pages display in a
-	// reasonable degault size on devices with
-	// different screen sizes.
-	mWebView->disableZoom();
-
-	mWebView->addWebViewListener(this);
-
-	// The page in the "LocalFiles" folder to
-	// show when the application starts.
-	mWebView->openURL("buttons.html");
-	mTimeToNextParticle = 0;
 	mPrevTime = maGetMilliSecondCount();
-	srand(mPrevTime);
+
 	Environment::getEnvironment().addTimer(this,10,0);
 }
 
@@ -72,54 +38,70 @@ OGLScreen::~OGLScreen()
 
 void OGLScreen::createUI()
 {
-	mWebView = new WebView();
-	mWebView->fillSpaceHorizontally();
-	mWebView->setHeight(80);
-	mWebView->openURL("buttons.html");
+	mAddButton = new Button();
+	mAddButton->fillSpaceHorizontally();
+	mAddButton->wrapContentVertically();
+	mAddButton->setText("Increase");
+	mAddButton->addButtonListener(this);
 
-	mWebView->enableWebViewMessages();
+	mRemoveButton = new Button();
+	mRemoveButton->fillSpaceHorizontally();
+	mRemoveButton->wrapContentVertically();
+	mRemoveButton->setText("Decrease");
+	mRemoveButton->addButtonListener(this);
 
+	HorizontalLayout* hLayout = new HorizontalLayout();
+	hLayout->wrapContentVertically();
+	hLayout->addChild(mAddButton);
+	hLayout->addChild(mRemoveButton);
 
 	mGLView = new GLView(MAW_GL_VIEW);
 	mGLView->addGLViewListener(this);
 
 	VerticalLayout* vLayout = new VerticalLayout();
-	vLayout->addChild(mWebView);
+	vLayout->addChild(hLayout);
 	vLayout->addChild(mGLView);
 
 	setMainWidget(vLayout);
-	setTitle("Native Render/HTML Buttons");
+	setTitle("Native Render");
 }
 
-/**
- * This method handles messages sent from the WebView.
- * @param webView The WebView that sent the message.
- * @param urlData Data object that holds message content.
- * Note that the data object will be valid only during
- * the life-time of the call of this method, then it
- * will be deallocated.
- */
-void OGLScreen::webViewHookInvoked(WebView* webView, int hookType, MAHandle urlData)
+void OGLScreen::buttonClicked(Widget* button)
 {
-	// Create message object. This parses the message.
-	WebViewMessage message(webView, urlData);
-	if (message.is("increaseFlow"))
-	{
-		if(mFlow < MAX_FLOW )
-		{
-			mFlow += 1;
-		}
-	}else if (message.is("decreaseFlow"))
-	{
-		if(mFlow > MIN_FLOW )
-		{
-			mFlow -= 1;
-		}
+	if(button == mAddButton){
+		mHTMLScreen->getWebView()->callJS("increaseFlow()");
 	}
+	else if(button == mRemoveButton){
+		mHTMLScreen->getWebView()->callJS("decreaseFlow()");
+	}
+}
 
-	// Tell the WebView that we have processed the message, so that
-	// it can send the next one.
-	mWebView->callJS("bridge.messagehandler.processedMessage()");
+void OGLScreen::enableAddButton(bool state)
+{
+	if(state)
+	{
+		mAddButton->setEnabled(true);
+		mAddButton->setFontColor(0x000000);
+	}
+	else
+	{
+		mAddButton->setEnabled(false);
+		mAddButton->setFontColor(0x969696);
+	}
+}
+
+void OGLScreen::enableRemoveButton(bool state)
+{
+	if(state)
+	{
+		mRemoveButton->setEnabled(true);
+		mRemoveButton->setFontColor(0x000000);
+	}
+	else
+	{
+		mRemoveButton->setEnabled(false);
+		mRemoveButton->setFontColor(0x969696);
+	}
 }
 
 void OGLScreen::glViewReady(GLView* glView)
@@ -135,7 +117,7 @@ void OGLScreen::glViewReady(GLView* glView)
 	initGL();
 }
 
-void OGLScreen::initVariables(int maxParticles, int particleLifetime, float gravityScale, int screenWidth, int screenHeight)
+void OGLScreen::initVariables(HTMLScreen *htmlScreen,int maxParticles, int particleLifetime, float gravityScale, int screenWidth, int screenHeight)
 {
 	MAX_PARTICLES = maxParticles;
 	PARTICLE_LIFETIME = particleLifetime;
@@ -152,6 +134,7 @@ void OGLScreen::initVariables(int maxParticles, int particleLifetime, float grav
 		mParticles[i].alive = false;
 	}
 
+	mHTMLScreen = htmlScreen;
 	mVariablesInitialized = true;
 
 	// Initialize OpenGL.
@@ -232,15 +215,6 @@ void OGLScreen::initGL()
 	glBlendFunc(GL_ONE, GL_ONE);
 
 	mEnvironmentInitialized = true;
-
-	// Enable depth testing.
-	//glEnable(GL_DEPTH_TEST);
-
-	// Set the type of depth test.
-	//glDepthFunc(GL_LEQUAL);
-
-	// Use the best perspective correction method.
-	//glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 }
 
 void OGLScreen::renderParticleObject()

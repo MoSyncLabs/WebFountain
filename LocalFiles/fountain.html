@@ -103,14 +103,16 @@
 							p.y = 0;
 							p.z = 0;
 							
-							newParticleMessage["xv"] = Math.floor(p.xv * 1000);
-							newParticleMessage["yv"] = Math.floor(p.yv * 1000);
-							newParticleMessage["zv"] = Math.floor(p.zv * 1000);
-							newParticleMessage["x"] = Math.floor(p.x);
-							newParticleMessage["y"] = Math.floor(p.y);
-							newParticleMessage["z"] = Math.floor(p.z);
-							
-							bridge.messagehandler.send(newParticleMessage);
+							if(!render){
+								newParticleMessage["xv"] = Math.floor(p.xv * 1000);
+								newParticleMessage["yv"] = Math.floor(p.yv * 1000);
+								newParticleMessage["zv"] = Math.floor(p.zv * 1000);
+								newParticleMessage["x"] = Math.floor(p.x);
+								newParticleMessage["y"] = Math.floor(p.y);
+								newParticleMessage["z"] = Math.floor(p.z);
+								
+								bridge.messagehandler.send(newParticleMessage);
+							}
 							break;
 						}
 					}

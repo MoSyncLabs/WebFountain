@@ -7,7 +7,7 @@
 
 #include <Wormhole/FileUtil.h>
 #include <NativeUI/Widgets.h>
-#include "OGLScreen.h"
+
 
 // Namespaces we want to access.
 using namespace MAUtil; // Class Moblet
@@ -17,11 +17,12 @@ using namespace Wormhole; // Class WebAppMoblet
 #ifndef HTMLSCREEN_H_
 #define HTMLSCREEN_H_
 
+#include "OGLScreen.h"
+
 class HTMLScreen : public Screen, public ButtonListener, public SensorListener, public WebViewListener
 {
 public:
-	HTMLScreen(int maxParticles, int minFlow, int maxFlow,
-			int particleLifetime, float gravityScale, float initVelocity, OGLScreen *oglScreen);
+	HTMLScreen(OGLScreen *oglScreen);
 
 	~HTMLScreen();
 
@@ -34,6 +35,8 @@ public:
 	virtual void sensorEvent(MASensor a);
 
 	void shouldRender(bool render);
+
+	WebView* getWebView();
 private:
 	Button* mAddButton;
 
@@ -42,8 +45,6 @@ private:
 	WebView* mWebView;
 
 	bool mShouldRender;
-
-	char mBuffer[128];
 
 	OGLScreen *mOGLScreen;
 };

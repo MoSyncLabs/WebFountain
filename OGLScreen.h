@@ -8,6 +8,8 @@
 
 #include <NativeUI/Widgets.h>
 #include <GLES/gl.h>
+#include "HTMLScreen.h"
+
 
 // Namespaces we want to access.
 using namespace MAUtil; // Class Moblet
@@ -15,6 +17,8 @@ using namespace NativeUI; // WebView widget.
 
 #ifndef OGLSCREEN_H_
 #define OGLSCREEN_H_
+
+class HTMLScreen;
 
 typedef struct particle{
 	bool alive;
@@ -32,25 +36,21 @@ typedef struct particle{
 class OGLScreen :	public Screen,
 					public GLViewListener,
 					public SensorListener,
-					public WebViewListener,
-					public TimerListener
+					public TimerListener,
+					public ButtonListener
 {
 public:
-	OGLScreen(int maxParticles, int minFlow, int maxFlow,
-			int particleLifetime, float gravityScale, float initVelocity,
-			MAHandle particleImage);
+	OGLScreen(MAHandle particleImage);
 
 	~OGLScreen();
 
 	void createUI();
 
-	virtual void webViewHookInvoked(WebView* webView, int hookType, MAHandle urlData);
-
 	virtual void sensorEvent(MASensor a);
 
 	virtual void glViewReady(GLView* glView);
 
-	void initVariables(int maxParticles, int particleLifetime, float gravityScale, int screenWidth, int screenHeight);
+	void initVariables(HTMLScreen *htmlScreen,int maxParticles, int particleLifetime, float gravityScale, int screenWidth, int screenHeight);
 
 	void createTexture();
 
@@ -58,7 +58,7 @@ public:
 
 	void initGL();
 
-
+	virtual void buttonClicked(Widget* button);
 
 	void draw(int currentTime);
 
@@ -71,8 +71,17 @@ public:
 	void addNewParticles(float x, float y, float z, float xv, float yv, float zv);
 
 	void removeOldParticles(int currentTime);
+
+	void enableAddButton(bool state);
+
+	void enableRemoveButton(bool state);
 private:
-	WebView* mWebView;
+
+	Button* mAddButton;
+
+	Button* mRemoveButton;
+
+	HTMLScreen *mHTMLScreen;
 
 	MAHandle mParticleImageHandle;
 
@@ -88,29 +97,17 @@ private:
 
 	particle* mParticles;
 
-	int mFlow;
-
-	int mInnerWidth;
-
 	bool mShouldRender;
 
 	int mPrevTime;
-
-	int mTimeToNextParticle;
 
 	float ax, ay, az;
 
 	int MAX_PARTICLES;
 
-	int MIN_FLOW;
-
-	int MAX_FLOW;
-
 	int PARTICLE_LIFETIME;
 
 	float GRAVITY_SCALE;
-
-	float INIT_VELOCITY;
 
 	int SCREN_WIDTH;
 
