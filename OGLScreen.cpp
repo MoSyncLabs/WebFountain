@@ -63,7 +63,7 @@ void OGLScreen::createUI()
 	vLayout->addChild(mGLView);
 
 	setMainWidget(vLayout);
-	setTitle("Native Render");
+	setTitle("Native Rendering");
 }
 
 void OGLScreen::buttonClicked(Widget* button)

@@ -68,7 +68,7 @@ void HTMLScreen::createUI()
 
 	setMainWidget(vLayout);
 
-	setTitle("HTML Render/Native Buttons");
+	setTitle("HTML Rendering");
 }
 
 /**
