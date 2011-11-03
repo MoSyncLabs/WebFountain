@@ -15,14 +15,15 @@
 			var GRAVITY_SCALE = 0.002;
 			var INIT_VELOCITY = 1.5;
 
-			var innerWidth = window.innerWidth - 10;
-			var innerHeight = window.innerHeight - 10;
+			//var innerWidth = window.innerWidth - 10;
+			//var innerHeight = window.innerHeight - 10;
+			
 			
 			var flow = MIN_FLOW; //Particles per second
 			
 			var PARTICLE_LIFETIME = 5000;
 			
-			setInterval(timedFunc, 10);
+			
 
 			particle = new Image();
 			particle.src = 'Res/particle.png';
@@ -235,6 +236,11 @@
 			
 			function pageLoaded()
 			{
+				var innerWidth = document.documentElement.clientWidth - 10;
+				var innerHeight = document.documentElement.clientHeight - 10;
+				
+				setInterval(timedFunc, 10);
+				
 				handleButtons();
 				var initOGLMessage = new Array();
 				initOGLMessage["messageName"] = "initOGLVariables";
