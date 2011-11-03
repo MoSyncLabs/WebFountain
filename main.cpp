@@ -15,7 +15,7 @@
 // Namespaces we want to access.
 using namespace MAUtil; // Class Moblet
 using namespace NativeUI; // WebView widget.
-using namespace Wormhole; // Class WebAppMoblet
+using namespace Wormhole; // Class FileUtil
 
 /**
  * The application class.
@@ -30,13 +30,17 @@ public:
 
 		// Extract bundled files to the local file system.
 		mFileUtil->extractLocalFiles();
+
+		//Create the two screens that make up the example
 		mOGLScreen = new OGLScreen(PARTICLE_IMAGE);
 		mHTMLScreen = new HTMLScreen(mOGLScreen);
 
+		//Allow both screens to receive sensor events
 		Environment::getEnvironment().addSensorListener(mHTMLScreen);
 		Environment::getEnvironment().addSensorListener(mOGLScreen);
 		maSensorStart(1, 100);
 
+		//Create the tab screen
 		mTabScreen = new TabScreen();
 		mTabScreen->addTab(mHTMLScreen);
 		mTabScreen->addTab(mOGLScreen);
@@ -44,6 +48,8 @@ public:
 
 		mTabScreen->setActiveTab(0);
 		mTabScreen->show();
+
+		//Tell the HTMLScreen that it should start rendering
 		mHTMLScreen->shouldRender(true);
 	}
 
@@ -58,6 +64,8 @@ public:
             TabScreen* tabScreen,
             const int tabScreenIndex)
     {
+		//Notify each screen whether is should be rendering or not
+		//based on which tab the user clicked
     	if(tabScreenIndex == 0)
     	{
     		mHTMLScreen->shouldRender(true);

@@ -28,6 +28,7 @@ OGLScreen::OGLScreen(MAHandle particleImage): Screen()
 
 	mPrevTime = maGetMilliSecondCount();
 
+	//Setthe timer that controls the rendering
 	Environment::getEnvironment().addTimer(this,10,0);
 }
 
@@ -38,12 +39,14 @@ OGLScreen::~OGLScreen()
 
 void OGLScreen::createUI()
 {
+	//Increase flow button
 	mAddButton = new Button();
 	mAddButton->fillSpaceHorizontally();
 	mAddButton->wrapContentVertically();
 	mAddButton->setText("Increase");
 	mAddButton->addButtonListener(this);
 
+	//Decrease flow button
 	mRemoveButton = new Button();
 	mRemoveButton->fillSpaceHorizontally();
 	mRemoveButton->wrapContentVertically();
@@ -55,6 +58,7 @@ void OGLScreen::createUI()
 	hLayout->addChild(mAddButton);
 	hLayout->addChild(mRemoveButton);
 
+	//The widget that renders the animation
 	mGLView = new GLView(MAW_GL_VIEW);
 	mGLView->addGLViewListener(this);
 
@@ -68,6 +72,7 @@ void OGLScreen::createUI()
 
 void OGLScreen::buttonClicked(Widget* button)
 {
+	//Notify the JavaScript code that a button was clicked
 	if(button == mAddButton){
 		mHTMLScreen->getWebView()->callJS("increaseFlow()");
 	}
@@ -106,7 +111,9 @@ void OGLScreen::enableRemoveButton(bool state)
 
 void OGLScreen::glViewReady(GLView* glView)
 {
+	//Set this GLView to receive OpenGL commands
 	mGLView->bind();
+
 	// Create the texture we will use for rendering.
 	createTexture();
 
@@ -117,7 +124,9 @@ void OGLScreen::glViewReady(GLView* glView)
 	initGL();
 }
 
-void OGLScreen::initVariables(HTMLScreen *htmlScreen,int maxParticles, int particleLifetime, float gravityScale, int screenWidth, int screenHeight)
+void OGLScreen::initVariables(HTMLScreen *htmlScreen,int maxParticles,
+							int particleLifetime, float gravityScale,
+							int screenWidth, int screenHeight)
 {
 	MAX_PARTICLES = maxParticles;
 	PARTICLE_LIFETIME = particleLifetime;
@@ -128,9 +137,11 @@ void OGLScreen::initVariables(HTMLScreen *htmlScreen,int maxParticles, int parti
 
 	SCREEN_HEIGHT = screenHeight;
 
+	//Initialize the list of particles
 	mParticles = new particle[MAX_PARTICLES];
 	for(int i = 0; i < MAX_PARTICLES; i++)
 	{
+		//All particles in the list start out as inactive
 		mParticles[i].alive = false;
 	}
 
@@ -162,12 +173,7 @@ void OGLScreen::createTexture()
  */
 void OGLScreen::setViewport(int width, int height)
 {
-	// Protect against divide by zero.
-	if (0 == height)
-	{
-		height = 1;
-	}
-	// Set viewport.
+	// Set the viewport to fill the GLView
 	glViewport(0, 0, (GLint)mGLView->getWidth(), (GLint)mGLView->getHeight());
 
 	// Select the projection matrix.
@@ -176,16 +182,14 @@ void OGLScreen::setViewport(int width, int height)
 	// Reset the projection matrix.
 	glLoadIdentity();
 
-	// Set the perspective (updates the projection
-	// matrix to use the perspective we define).
-	//GLfloat ratio = (GLfloat)width / (GLfloat)height;
-	//gluPerspective(45.0f, ratio, 0.1f, 100.0f);
-
 	//Set an orthographic projection
+	//The Y axis is set upside-down to
+	//match the coordinate system of the
+	//HTML5 canvas
 	glOrthof((GLfloat)(-width / 2),
 			(GLfloat)(+width / 2),
-			(GLfloat)(-height / 2),
 			(GLfloat)(+height / 2),
+			(GLfloat)(-height / 2),
 			0,1
 			);
 }
@@ -195,11 +199,15 @@ void OGLScreen::setViewport(int width, int height)
  */
 void OGLScreen::initGL()
 {
+	//This function is called twice, but executes it's code
+	//Only when both the other two initialization methods
+	//have been executed
 	if(!(mGLViewInitialized && mVariablesInitialized))
 	{
 		return;
 	}
 
+	//Configure the viewport
 	setViewport(SCREN_WIDTH, SCREEN_HEIGHT);
     // Enable texture mapping.
     glEnable(GL_TEXTURE_2D);
@@ -245,27 +253,31 @@ void OGLScreen::renderParticleObject()
 	glVertexPointer(3, GL_FLOAT, 0, vcoords);
 	glTexCoordPointer(2, GL_FLOAT, 0, tcoords);
 
+	// Enable texture and vertex arrays
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
+	//Render each active particle
 	for(int i = 0; i < MAX_PARTICLES; i++) {
 		if(mParticles[i].alive)
 		{
 			glPushMatrix();
-			// Enable vertex and texture coord arrays.
 
+			//Position the particle in the X and Y axis
 			glTranslatef(mParticles[i].x, mParticles[i].y, 0.0f);
+
+			//Scale to simulate the Z axis, since this is a 2D
+			//image and we are using an Orthographic projection
 			glScalef(mParticles[i].z / 2, mParticles[i].z / 2, 0.0f);
 
 			// This draws the particle.
 			glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_BYTE, indices);
-				// Disable texture and vertex arrays.
 
 			glPopMatrix();
 		}
 	}
 
-
+	// Disable texture and vertex arrays
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 	glDisableClientState(GL_VERTEX_ARRAY);
 
@@ -291,28 +303,35 @@ void OGLScreen::draw(int currentTime)
 	// Reset the model matrix.
 	glLoadIdentity();
 
-	float twoPI = 2*M_PI;
+	//The time since the last frame
 	int cycleTime = (currentTime - mPrevTime);
 	for(int i = 0; i < MAX_PARTICLES; i++) {
 
 		particle* p = mParticles + i;
 		if(p->alive == true)
 		{
+			//Each particle's time since the last frame is
+			//usually equal to cycleTime, unless the particle
+			//has just been created. Then it has a shorter time.
 			int particleTime = cycleTime;
 			if(p->addTime > mPrevTime)
 			{
 				particleTime = (currentTime - p->addTime);
 			}
+
+			//Calculate the new velocity vector
 			p->zv += az*particleTime;
 			p->xv += ax*particleTime;
 			p->yv += ay*particleTime;
 
+			//Calculate the new position vector
 			p->z += p->zv*particleTime;
 			p->x += p->xv*particleTime;
 			p->y += p->yv*particleTime;
 		}
 	}
 
+	//Render the particles at their new positions
 	renderParticleObject();
 
 	// Wait (blocks) until all GL drawing commands to finish.
@@ -330,6 +349,7 @@ void OGLScreen::shouldRender(bool render)
 
 void OGLScreen::sensorEvent(MASensor a)
 {
+	//Set the new gravity vector
 	ax = a.values[0] * GRAVITY_SCALE;
 	ay = a.values[1] * GRAVITY_SCALE;
 	az = a.values[2] * GRAVITY_SCALE;
@@ -337,44 +357,55 @@ void OGLScreen::sensorEvent(MASensor a)
 
 void OGLScreen::runTimerEvent()
 {
+	//Execute only if the screen is active
 	if(mShouldRender)
 	{
+		//Get the current system time
 		int currentTime = maGetMilliSecondCount();
-		//addNewParticles(currentTime);
+
+		//Calculate and draw the positions for the new frame
 		draw(currentTime);
+
+		//Deactivate any particles past their time
 		removeOldParticles(currentTime);
+
 		mPrevTime = currentTime;
 	}
 }
 
-void OGLScreen::addNewParticles(float x, float y, float z, float xv, float yv, float zv)
+void OGLScreen::addNewParticles(float x, float y, float z,
+								float xv, float yv, float zv)
 {
-		int currentTime = maGetMilliSecondCount();
+	//Mark the time this particle was added
+	int currentTime = maGetMilliSecondCount();
 
-		for(int i = 0; i < MAX_PARTICLES; i++)
+	//Find an inactive particle to initialize and activate
+	for(int i = 0; i < MAX_PARTICLES; i++)
+	{
+		if(!mParticles[i].alive)
 		{
-			if(!mParticles[i].alive)
-			{
-				mParticles[i].alive = true;
-				mParticles[i].addTime = currentTime;
-				mParticles[i].xv = xv;
-				mParticles[i].yv = yv;
-				mParticles[i].zv = zv;
-				mParticles[i].x = x;
-				mParticles[i].y = y;
-				mParticles[i].z = z;
-				break;
-			}
+			mParticles[i].alive = true;
+			mParticles[i].addTime = currentTime;
+			mParticles[i].xv = xv;
+			mParticles[i].yv = yv;
+			mParticles[i].zv = zv;
+			mParticles[i].x = x;
+			mParticles[i].y = y;
+			mParticles[i].z = z;
+			break;
 		}
+	}
 }
 
 void OGLScreen::removeOldParticles(int currentTime)
 {
 	for(int i = 0; i < MAX_PARTICLES; i++)
 	{
-		if(mParticles[i].alive == true &&
-				(mParticles[i].addTime + PARTICLE_LIFETIME < currentTime || mParticles[i].z < 0))
+		if(mParticles[i].alive == true && //if the particle is active
+			(mParticles[i].addTime + PARTICLE_LIFETIME < currentTime //but past it's time
+						|| mParticles[i].z < 0)) //Or if it fell below the 0 level
 		{
+			//Deactivate it
 			mParticles[i].alive = false;
 		}
 	}

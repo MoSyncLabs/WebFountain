@@ -19,34 +19,64 @@ using namespace Wormhole; // Class WebAppMoblet
 
 #include "OGLScreen.h"
 
-class HTMLScreen : public Screen, public ButtonListener, public SensorListener, public WebViewListener
+class HTMLScreen : 	public Screen,
+					public ButtonListener,
+					public SensorListener,
+					public WebViewListener
 {
 public:
 	HTMLScreen(OGLScreen *oglScreen);
 
 	~HTMLScreen();
 
+	/**
+	 * This method creates the user interface of the screen
+	 */
 	void createUI();
 
+	/**
+	 * This method handles messages sent from the WebView.
+	 * @param webView The WebView that sent the message.
+	 * @param urlData Data object that holds message content.
+	 * Note that the data object will be valid only during
+	 * the life-time of the call of this method, then it
+	 * will be deallocated.
+	 */
 	virtual void webViewHookInvoked(WebView* webView, int hookType, MAHandle urlData);
 
+	/**
+	 * This method handles button clicks that this screen manages.
+	 * @param button The button that was clicked
+	 */
 	virtual void buttonClicked(Widget* button);
 
+	/**
+	 * This method handles accelerometer events
+	 * @param a A struct containing the accelerometer info
+	 */
 	virtual void sensorEvent(MASensor a);
 
+	/**
+	 * Tell the screen whether it should render the animation or not
+	 * @param render The state of rendering.
+	 */
 	void shouldRender(bool render);
 
+	/**
+	 * This method returns the webview that this screen manages
+	 * @param render The state of rendering.
+	 */
 	WebView* getWebView();
 private:
-	Button* mAddButton;
+	Button* mAddButton; //Increases the flow of particles
 
-	Button* mRemoveButton;
+	Button* mRemoveButton; //Decreases the flow of particles
 
-	WebView* mWebView;
+	WebView* mWebView; //Renders the animation in Javascript
 
-	bool mShouldRender;
+	OGLScreen *mOGLScreen; //The OpenGL rendering screen
 
-	OGLScreen *mOGLScreen;
+	float PRECISION; //Precision of floating point numbers
 };
 
 
