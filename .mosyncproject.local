@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project version="1.2">
-<active.build.cfg active="Release"/>
-<target-profile device="iPhone" vendor="Apple"/>
-<properties>
-<property key="privileged.access.token" value="CA2441A1D2DA0741429E429FCB838F92"/>
-</properties>
-</project>
