@@ -51,6 +51,8 @@ public:
 
 		//Tell the HTMLScreen that it should start rendering
 		mHTMLScreen->shouldRender(true);
+
+		Environment::getEnvironment().addKeyListener(this);
 	}
 
 	~WebFountain()
@@ -77,6 +79,14 @@ public:
     		mOGLScreen->shouldRender(true);
     	}
     }
+
+	void keyReleaseEvent(int keyCode, int nativeCode)
+	{
+		if( keyCode == MAK_BACK )
+		{
+			maExit(0);
+		}
+	}
 
 
 

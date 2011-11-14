@@ -188,8 +188,8 @@ void OGLScreen::setViewport(int width, int height)
 	//HTML5 canvas
 	glOrthof((GLfloat)(-width / 2),
 			(GLfloat)(+width / 2),
-			(GLfloat)(+height / 2),
 			(GLfloat)(-height / 2),
+			(GLfloat)(+height / 2),
 			0,1
 			);
 }
