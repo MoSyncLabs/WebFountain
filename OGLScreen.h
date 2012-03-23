@@ -139,7 +139,7 @@ public:
 	 * @param zv The particle's velocity on the z axis
 	 */
 	void addNewParticles(float x, float y, float z,
-						float xv, float yv, float zv);
+						float xv, float yv, float zv, int flow);
 
 	/**
 	 * Checks for particles past their lifetime, and removes them
@@ -176,6 +176,10 @@ private:
 
 	bool mEnvironmentInitialized; //Initialization flag for rendering
 
+	Label* mFPSLabel; //A label for showing the frame rate
+
+	Label* mFlowLabel; //A label for showing the flow rate
+
 	GLView* mGLView; //The widget that renders the frames
 
 	particle* mParticles; //The list of particles
@@ -183,6 +187,10 @@ private:
 	bool mShouldRender; //The state of rendering
 
 	int mPrevTime; //The previous time that a frame was rendered
+
+	int mTotalTime; //Used to average the FPS value for several frames
+
+	int mFrameCounter; //Used to count when it needs to update the FPS
 
 	float ax, ay, az; //The gravity vector
 

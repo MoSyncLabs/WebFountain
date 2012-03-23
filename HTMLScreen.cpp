@@ -143,7 +143,8 @@ void HTMLScreen::webViewHookInvoked(WebView* webView, int hookType, MAHandle url
 				message.getParamInt("z"),
 				message.getParamInt("xv") / PRECISION,
 				message.getParamInt("yv") / PRECISION,
-				message.getParamInt("zv") / PRECISION
+				message.getParamInt("zv") / PRECISION,
+				message.getParamInt("flow")
 		);
 	}
 

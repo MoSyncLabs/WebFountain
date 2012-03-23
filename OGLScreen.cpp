@@ -24,6 +24,9 @@ OGLScreen::OGLScreen(MAHandle particleImage): Screen()
 	mShouldRender = false;
 	ax = ay = az = 0;
 
+	mTotalTime = 0;
+	mFrameCounter = 0;
+
 	createUI();
 
 	mPrevTime = maGetMilliSecondCount();
@@ -58,12 +61,28 @@ void OGLScreen::createUI()
 	hLayout->addChild(mAddButton);
 	hLayout->addChild(mRemoveButton);
 
+	mFPSLabel = new Label();
+	mFPSLabel->setText("FPS:");
+	mFPSLabel->wrapContentVertically();
+	mFPSLabel->fillSpaceHorizontally();
+
+	mFlowLabel = new Label();
+	mFlowLabel->setText("Flow:");
+	mFlowLabel->wrapContentVertically();
+	mFlowLabel->fillSpaceHorizontally();
+
+	HorizontalLayout* hLayout2 = new HorizontalLayout();
+	hLayout2->wrapContentVertically();
+	hLayout2->addChild(mFPSLabel);
+	hLayout2->addChild(mFlowLabel);
+
 	//The widget that renders the animation
 	mGLView = new GLView(MAW_GL_VIEW);
 	mGLView->addGLViewListener(this);
 
 	VerticalLayout* vLayout = new VerticalLayout();
 	vLayout->addChild(hLayout);
+	vLayout->addChild(hLayout2);
 	vLayout->addChild(mGLView);
 
 	setMainWidget(vLayout);
@@ -369,16 +388,28 @@ void OGLScreen::runTimerEvent()
 		//Deactivate any particles past their time
 		removeOldParticles(currentTime);
 
+		mFrameCounter++;
+		mTotalTime += currentTime - mPrevTime;
+		if(mFrameCounter == 100)
+		{
+			char buffer[32];
+			sprintf(buffer,"FPS:%4.1f", 100000.0f / mTotalTime);
+			mFPSLabel->setText(buffer);
+			mTotalTime = 0;
+			mFrameCounter = 0;
+		}
 		mPrevTime = currentTime;
 	}
 }
 
 void OGLScreen::addNewParticles(float x, float y, float z,
-								float xv, float yv, float zv)
+								float xv, float yv, float zv, int flow)
 {
 	//Mark the time this particle was added
 	int currentTime = maGetMilliSecondCount();
-
+	char buffer[32];
+	sprintf(buffer,"Flow:%d", flow);
+	mFlowLabel->setText(buffer);
 	//Find an inactive particle to initialize and activate
 	for(int i = 0; i < MAX_PARTICLES; i++)
 	{

@@ -38,7 +38,7 @@ public:
 		//Allow both screens to receive sensor events
 		Environment::getEnvironment().addSensorListener(mHTMLScreen);
 		Environment::getEnvironment().addSensorListener(mOGLScreen);
-		maSensorStart(1, 100);
+		maSensorStart(1, -1);
 
 		//Create the tab screen
 		mTabScreen = new TabScreen();
