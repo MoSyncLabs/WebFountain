@@ -22,7 +22,6 @@ OGLScreen::OGLScreen(MAHandle particleImage): Screen()
 	mEnvironmentInitialized = false;
 	mVariablesInitialized = false;
 	mShouldRender = false;
-	ax = ay = az = 0;
 
 	mTotalTime = 0;
 	mFrameCounter = 0;
@@ -67,7 +66,7 @@ void OGLScreen::createUI()
 	mFPSLabel->fillSpaceHorizontally();
 
 	mFlowLabel = new Label();
-	mFlowLabel->setText("Flow:");
+	mFlowLabel->setText("Particles:");
 	mFlowLabel->wrapContentVertically();
 	mFlowLabel->fillSpaceHorizontally();
 
@@ -93,10 +92,10 @@ void OGLScreen::buttonClicked(Widget* button)
 {
 	//Notify the JavaScript code that a button was clicked
 	if(button == mAddButton){
-		mHTMLScreen->getWebView()->callJS("increaseFlow()");
+		mHTMLScreen->getWebView()->callJS("increaseParticles()");
 	}
 	else if(button == mRemoveButton){
-		mHTMLScreen->getWebView()->callJS("decreaseFlow()");
+		mHTMLScreen->getWebView()->callJS("decreaseParticles()");
 	}
 }
 
@@ -143,14 +142,12 @@ void OGLScreen::glViewReady(GLView* glView)
 	initGL();
 }
 
-void OGLScreen::initVariables(HTMLScreen *htmlScreen,int maxParticles,
-							int particleLifetime, float gravityScale,
-							int screenWidth, int screenHeight)
+void OGLScreen::initVariables(HTMLScreen *htmlScreen,int maxParticles, int numParticles, int numSpikes,
+		int radiusScale, int screenWidth, int screenHeight)
 {
 	MAX_PARTICLES = maxParticles;
-	PARTICLE_LIFETIME = particleLifetime;
-
-	GRAVITY_SCALE = gravityScale;
+	mNumSpikes = numSpikes;
+	mRadiusScale = radiusScale;
 
 	SCREN_WIDTH = screenWidth;
 
@@ -167,6 +164,7 @@ void OGLScreen::initVariables(HTMLScreen *htmlScreen,int maxParticles,
 	mHTMLScreen = htmlScreen;
 	mVariablesInitialized = true;
 
+	addNewParticles(numParticles);
 	// Initialize OpenGL.
 	initGL();
 }
@@ -260,13 +258,13 @@ void OGLScreen::renderParticleObject()
 
 	// Define the particle.
 	tcoords[0][0] = 1.0f;  tcoords[0][1] = 0.0f;
-	vcoords[0][0] = -1.0f; vcoords[0][1] = -1.0f; vcoords[0][2] = 0.0f;
+	vcoords[0][0] = 0.0f; vcoords[0][1] = 1.0f; vcoords[0][2] = 0.0f;
 	tcoords[1][0] = 0.0f;  tcoords[1][1] = 0.0f;
-	vcoords[1][0] = 1.0f;  vcoords[1][1] = -1.0f; vcoords[1][2] = 0.0f;
+	vcoords[1][0] = 0.0f;  vcoords[1][1] = 0.0f; vcoords[1][2] = 0.0f;
 	tcoords[2][0] = 0.0f;  tcoords[2][1] = 1.0f;
-	vcoords[2][0] = 1.0f;  vcoords[2][1] = 1.0f; vcoords[2][2] = 0.0f;
+	vcoords[2][0] = 1.0f;  vcoords[2][1] = 0.0f; vcoords[2][2] = 0.0f;
 	tcoords[3][0] = 1.0f;  tcoords[3][1] = 1.0f;
-	vcoords[3][0] = -1.0f; vcoords[3][1] = 1.0f; vcoords[3][2] = 0.0f;
+	vcoords[3][0] = 1.0f; vcoords[3][1] = 1.0f; vcoords[3][2] = 0.0f;
 
 	// Set pointers to vertex coordinates and texture coordinates.
 	glVertexPointer(3, GL_FLOAT, 0, vcoords);
@@ -277,9 +275,8 @@ void OGLScreen::renderParticleObject()
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
 	//Render each active particle
-	for(int i = 0; i < MAX_PARTICLES; i++) {
-		if(mParticles[i].alive)
-		{
+	for(int i = 0; i < mNumParticles; i++) {
+
 			glPushMatrix();
 
 			//Position the particle in the X and Y axis
@@ -287,13 +284,13 @@ void OGLScreen::renderParticleObject()
 
 			//Scale to simulate the Z axis, since this is a 2D
 			//image and we are using an Orthographic projection
-			glScalef(mParticles[i].z / 2, mParticles[i].z / 2, 0.0f);
+			glScalef(mParticles[i].z , mParticles[i].z , 0.0f);
 
 			// This draws the particle.
 			glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_BYTE, indices);
 
 			glPopMatrix();
-		}
+
 	}
 
 	// Disable texture and vertex arrays
@@ -322,32 +319,22 @@ void OGLScreen::draw(int currentTime)
 	// Reset the model matrix.
 	glLoadIdentity();
 
-	//The time since the last frame
-	int cycleTime = (currentTime - mPrevTime);
-	for(int i = 0; i < MAX_PARTICLES; i++) {
+	float twoPI = 2*M_PI;
 
-		particle* p = mParticles + i;
-		if(p->alive == true)
-		{
-			//Each particle's time since the last frame is
-			//usually equal to cycleTime, unless the particle
-			//has just been created. Then it has a shorter time.
-			int particleTime = cycleTime;
-			if(p->addTime > mPrevTime)
-			{
-				particleTime = (currentTime - p->addTime);
-			}
+	for(int i = 0; i < mNumParticles; i++) {
+		float maxRamp = SCREN_WIDTH/6 * sin(currentTime*0.00075);
 
-			//Calculate the new velocity vector
-			p->zv += az*particleTime;
-			p->xv += ax*particleTime;
-			p->yv += ay*particleTime;
+		float ramp = maxRamp*cos(-currentTime*0.001);
+		float r = (float)SCREN_WIDTH/mRadiusScale + ramp*sin(((float)mNumSpikes*i/mNumParticles)*twoPI);
+		// var particleSize = 80 + 70*Math.sin(time*0.004 + 4*i/NUM_PARTICLES*twoPI);
 
-			//Calculate the new position vector
-			p->z += p->zv*particleTime;
-			p->x += p->xv*particleTime;
-			p->y += p->yv*particleTime;
-		}
+		float particleSize = 80 + 70*sin(currentTime*0.004 + 4.0f*i/mNumParticles*twoPI);
+
+		//mParticles[i].x = -particleSize/2 + SCREN_WIDTH/2 +r * cos(currentTime * 0.0005 + ((float)i / mNumParticles) * twoPI);
+		//mParticles[i].y = -particleSize/2 + SCREN_WIDTH/2 +r * sin(currentTime * 0.0005 + ((float)i / mNumParticles) * twoPI);
+		mParticles[i].x = -particleSize/2 +r * cos(currentTime * 0.0005 + ((float)i / mNumParticles) * twoPI);
+		mParticles[i].y = -particleSize/2 +r * sin(currentTime * 0.0005 + ((float)i / mNumParticles) * twoPI);
+		mParticles[i].z = particleSize;
 	}
 
 	//Render the particles at their new positions
@@ -366,14 +353,6 @@ void OGLScreen::shouldRender(bool render)
 	mShouldRender = render;
 }
 
-void OGLScreen::sensorEvent(MASensor a)
-{
-	//Set the new gravity vector
-	ax = a.values[0] * GRAVITY_SCALE;
-	ay = a.values[1] * GRAVITY_SCALE;
-	az = a.values[2] * GRAVITY_SCALE;
-}
-
 void OGLScreen::runTimerEvent()
 {
 	//Execute only if the screen is active
@@ -384,9 +363,6 @@ void OGLScreen::runTimerEvent()
 
 		//Calculate and draw the positions for the new frame
 		draw(currentTime);
-
-		//Deactivate any particles past their time
-		removeOldParticles(currentTime);
 
 		mFrameCounter++;
 		mTotalTime += currentTime - mPrevTime;
@@ -402,44 +378,13 @@ void OGLScreen::runTimerEvent()
 	}
 }
 
-void OGLScreen::addNewParticles(float x, float y, float z,
-								float xv, float yv, float zv, int flow)
+void OGLScreen::addNewParticles(int amount)
 {
-	//Mark the time this particle was added
-	int currentTime = maGetMilliSecondCount();
+	mNumParticles = amount;
 	char buffer[32];
-	sprintf(buffer,"Flow:%d", flow);
+	sprintf(buffer,"Particles:%d", mNumParticles);
 	mFlowLabel->setText(buffer);
-	//Find an inactive particle to initialize and activate
-	for(int i = 0; i < MAX_PARTICLES; i++)
-	{
-		if(!mParticles[i].alive)
-		{
-			mParticles[i].alive = true;
-			mParticles[i].addTime = currentTime;
-			mParticles[i].xv = xv;
-			mParticles[i].yv = yv;
-			mParticles[i].zv = zv;
-			mParticles[i].x = x;
-			mParticles[i].y = y;
-			mParticles[i].z = z;
-			break;
-		}
-	}
-}
-
-void OGLScreen::removeOldParticles(int currentTime)
-{
-	for(int i = 0; i < MAX_PARTICLES; i++)
-	{
-		if(mParticles[i].alive == true && //if the particle is active
-			(mParticles[i].addTime + PARTICLE_LIFETIME < currentTime //but past it's time
-						|| mParticles[i].z < 0)) //Or if it fell below the 0 level
-		{
-			//Deactivate it
-			mParticles[i].alive = false;
-		}
-	}
+	lprintfln("NumPartiles:%d", mNumParticles);
 }
 
 

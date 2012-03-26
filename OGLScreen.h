@@ -38,7 +38,6 @@ typedef struct particle{
 
 class OGLScreen :	public Screen,
 					public GLViewListener,
-					public SensorListener,
 					public TimerListener,
 					public ButtonListener
 {
@@ -71,8 +70,8 @@ public:
 	 * @param screenHeight The height of the area that willbe used for rendering
 	 *
 	 */
-	void initVariables(HTMLScreen *htmlScreen,int maxParticles, int particleLifetime,
-							float gravityScale, int screenWidth, int screenHeight);
+	void initVariables(HTMLScreen *htmlScreen,int maxParticles, int numParticles, int numSpikes,
+							int radiusScale, int screenWidth, int screenHeight);
 
 	/**
 	 * This method will initialize the particle texture
@@ -124,12 +123,6 @@ public:
 	virtual void runTimerEvent();
 
 	/**
-	 * This method handles accelerometer events
-	 * @param a A struct containing the accelerometer info
-	 */
-	virtual void sensorEvent(MASensor a);
-
-	/**
 	 * This method adds a new particle to the rendering with the specified parameters
 	 * @param x The horizontal position of the particle.
 	 * @param y The vertical position of the particle.
@@ -138,14 +131,7 @@ public:
 	 * @param yv The particle's velocity on the y axis
 	 * @param zv The particle's velocity on the z axis
 	 */
-	void addNewParticles(float x, float y, float z,
-						float xv, float yv, float zv, int flow);
-
-	/**
-	 * Checks for particles past their lifetime, and removes them
-	 * @currentTime the current animation time
-	 */
-	void removeOldParticles(int currentTime);
+	void addNewParticles(int amount);
 
 	/**
 	 * This method enables or disables the Increase flow button
@@ -192,13 +178,13 @@ private:
 
 	int mFrameCounter; //Used to count when it needs to update the FPS
 
-	float ax, ay, az; //The gravity vector
-
 	int MAX_PARTICLES; //The maximum number of partiles
 
-	int PARTICLE_LIFETIME; //The lifetime of each partile, in milliseconds
+	int mNumParticles;
 
-	float GRAVITY_SCALE; //The strenght of gravity
+	int mNumSpikes; //The lifetime of each partile, in milliseconds
+
+	int mRadiusScale; //The strenght of gravity
 
 	int SCREN_WIDTH; //The width of the screen
 

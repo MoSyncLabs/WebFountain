@@ -35,11 +35,6 @@ public:
 		mOGLScreen = new OGLScreen(PARTICLE_IMAGE);
 		mHTMLScreen = new HTMLScreen(mOGLScreen);
 
-		//Allow both screens to receive sensor events
-		Environment::getEnvironment().addSensorListener(mHTMLScreen);
-		Environment::getEnvironment().addSensorListener(mOGLScreen);
-		maSensorStart(1, -1);
-
 		//Create the tab screen
 		mTabScreen = new TabScreen();
 		mTabScreen->addTab(mHTMLScreen);

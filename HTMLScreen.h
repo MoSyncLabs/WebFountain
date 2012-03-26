@@ -21,7 +21,6 @@ using namespace Wormhole; // Class WebAppMoblet
 
 class HTMLScreen : 	public Screen,
 					public ButtonListener,
-					public SensorListener,
 					public WebViewListener
 {
 public:
@@ -49,12 +48,6 @@ public:
 	 * @param button The button that was clicked
 	 */
 	virtual void buttonClicked(Widget* button);
-
-	/**
-	 * This method handles accelerometer events
-	 * @param a A struct containing the accelerometer info
-	 */
-	virtual void sensorEvent(MASensor a);
 
 	/**
 	 * Tell the screen whether it should render the animation or not

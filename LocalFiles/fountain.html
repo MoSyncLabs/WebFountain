@@ -9,290 +9,165 @@
 
 		<!-- JavaScript goes here -->
 		<script type="text/javascript">
-			var MAX_PARTICLES = 128; //Maximum number of particles
-			var MIN_FLOW = 1; //Minimum flow of particles (per second)
-			var MAX_FLOW = 30; //Maximum flow of particles (per second)
-			var GRAVITY_SCALE = 0.002; //Strenght of gravity
-			var INIT_VELOCITY = 1.5; //Initial velocity of particles
-			var PRECISION = 1000; //Three digits of precision
-			var MAX_ANGLE_DEVIATION = Math.PI/16; //Deviation from the main axis of the fountain
-			
-			var flow = MIN_FLOW; //Particles per second
-			
-			var PARTICLE_LIFETIME = 4000; //How long the particle will exist
-			
-			
-			//The image file that is used to render a particle
-			particle = new Image();
-			particle.src = 'Res/particle.png';
+		var MAX_PARTICLES = 200;
+		var MIN_PARTICLES = 5;
+		var PARTICLE_STEP = 5;
+		var NUM_PARTICLES = MIN_PARTICLES;
+		
+		var numSpikes = 12;
+		mShouldRender = true;
 
-			//Initialize the particle list
-			var particles = new Array(MAX_PARTICLES);
-			for(var i = 0; i < MAX_PARTICLES; i++)
-			{
-				particles[i] = new Object();
-				particles[i].alive = false;
-			}
-			
-			//Function that increases the flow of particles
-			function increaseFlow()
-			{
-				if(flow < MAX_FLOW)
-				{
-					flow += 1;
-					//Check wether we need to desable or enable a button
-					handleButtons();
-				}
-				document.getElementById('flowLabel').innerHTML = "Flow:" + flow;
-			}
-			
-			//Function that decreases the flow of particles
-			function decreaseFlow()
-			{
-				if(flow > MIN_FLOW)
-				{
-					flow -= 1;
-					//Check wether we need to desable or enable a button
-					handleButtons();
-				}
-				document.getElementById('flowLabel').innerHTML = "Flow:" + flow;
-			}
-			
-			var render = true;
-			//Should this webview be rendering or not?
-			function shouldRender(r)
-			{
-				render =  r;
-			}
-			
-			//Initialize prevTime to the current time
-			var prevTime = new Date().getTime();
-			var totalTime = 0;
-			var timeCounter = 0;
-			var fps = 0;
-			//A fucntion that is called for each frame to be drawn
-			function timedFunc()
-			{
-				var currentTime = new Date().getTime();
-				//Check to see if we need to add new particles
-				addNewParticles(currentTime);
-				//Remove and old particles
-				removeOldParticles(currentTime);
-				if(render)
-				{
-					//If the webview handles rendering, draw a frame
-					draw(currentTime);
-				}
-				timeCounter++;
-				totalTime += currentTime - prevTime;
-				if(timeCounter == 100)
-				{
-					document.getElementById('fpsLabel').innerHTML = "FPS:" + Math.floor(10*(100000 / totalTime))/10;
-					totalTime = 0;
-					timeCounter = 0;
-				}
-				prevTime = currentTime;
-			}
-			
-			//How much time has accumulated since the last particle was added
-			var timeToNextParticle = 0;
-			
-			//Message sent to C++ to add a new particle
-			var newParticleMessage = new Array();
-			newParticleMessage["messageName"] = "newParticle";
-			
-			//Add a new particle to the animation
-			function addNewParticles(currentTime)
-			{
-				//Adjust the time
-				timeToNextParticle += currentTime - prevTime;
-				//Check if we need to add a new particle
-				if(timeToNextParticle > 1000 / flow)
-				{
-					//Find a deactive particle
-					for(var i = 0; i < particles.length; i++)
-					{
-						var p = particles[i];
-						if(p.alive == false)
-						{
-							p.alive = true;
-							p.addTime = currentTime;
-							//Initialize it's velocity vector in polar coordinates
-							var phi = 2*Math.PI * Math.random();
-							var theta = MAX_ANGLE_DEVIATION * Math.random();
-							
-							//Convert them to cartesian coordinates,
-							//and apply the initial velocity value
-							p.xv = INIT_VELOCITY * Math.sin(theta) * Math.cos(phi);
-							p.yv = INIT_VELOCITY * Math.sin(theta) * Math.sin(phi);
-							p.zv = INIT_VELOCITY * Math.cos(theta);
-							
-							//Set the initial position to the center of the screen
-							p.x = 0;
-							p.y = 0;
-							p.z = 0;
-							
-							//If javascript is not rendering the animation, send the
-							//new particle info to C++ for rendering
-							if(!render){
-								//Convert the velocity vector to an integer for
-								//more a more efficient message string
-								newParticleMessage["xv"] = Math.floor(p.xv * PRECISION);
-								newParticleMessage["yv"] = Math.floor(p.yv * PRECISION);
-								newParticleMessage["zv"] = Math.floor(p.zv * PRECISION);
-								
-								//Make sure that the position is an integer too
-								newParticleMessage["x"] = Math.floor(p.x);
-								newParticleMessage["y"] = Math.floor(p.y);
-								newParticleMessage["z"] = Math.floor(p.z);
-								
-								newParticleMessage["flow"] = flow;
-								
-								//Send the message to C++
-								bridge.messagehandler.send(newParticleMessage);
-							}
-							break;
-						}
-					}
-					//Reset the timer
-					timeToNextParticle = 0;
-				}
-			}
-			
-			//Fucntion that removes any particles past their time
-			function removeOldParticles(currentTime)
-			{	
-				for(var i = 0; i < particles.length; i++)
-				{
-					var p = particles[i];
-					if(p.alive == true &&  //If the particle is active
-							//but past it's lifetime
-							(p.addTime + PARTICLE_LIFETIME < currentTime || 
-									p.z < 0)) //Or fell below the "ground"
-					{
-						//Deactivate it
-						p.alive = false;
-					}
-				}
-			}
+		var radiusScale = 4;
 
-			//The message that tells C++ to enable or disable it's buttons
-			var enableButtonsMessage = new Array();
-			enableButtonsMessage["messageName"] = "enableButtons";
+		particle = new Image();
+		particle.src = 'Res/particle.png';
 
-			//Checks whether any buttons needs to be enabled or disabled
-			function handleButtons()
+		startTime = new Date().getTime();
+		frames = 0;
+		fps = 0;
+		
+		//Initialize prevTime to the current time
+		var prevTime = new Date().getTime();
+		var totalTime = 0;
+		var timeCounter = 0;
+		var fps = 0;
+		//A fucntion that is called for each frame to be drawn
+		function timedFunc()
+		{
+			var currentTime = new Date().getTime();
+			//Check to see if we need to add new particles
+			
+			if(mShouldRender)
 			{
-				enableButtonsMessage["add"] = "true";
-				enableButtonsMessage["remove"] = "true";
-				
-				//Check to see if we hit the maximum or minimum flow of particles
-				if(flow >= MAX_FLOW)
-				{
-					enableButtonsMessage["add"] = "false";
-				}
-				else if(flow <= MIN_FLOW)
-				{
-					enableButtonsMessage["remove"] = "false";
-				}
-				
-				//Send the message to C++
-				bridge.messagehandler.send(enableButtonsMessage);
+				//If the webview handles rendering, draw a frame
+				draw(currentTime);
 			}
-
-			/**
-			 * Renders a particle object. The 'dots' argument
-			 * should be an array of objects which have members
-			 * x, y, width, height
-			 **/
-			function renderParticleObject(gfx, particles) {
-
-				for(var i = 0; i < particles.length; i++) {
-					var p = particles[i];
-					//Render only active and above-ground particles
-					if(p.alive ==true && p.z > 0)
-					{
-						gfx.drawImage(particle, 
-								p.x - p.z/2 + innerWidth/2, //Translate to top-left 0,0
-								p.y - p.z/2 + innerHeight/2, 
-								p.z, p.z); //Size is set by Z to simulate 3D space
-					}
-				}
-			}
-			
-			//The gravity vector
-			var ax = 0;
-			var ay = 0;
-			var az = 0;
-			
-			//Called by C++ to set the gravity vector
-			function setGravity(gx,gy,gz)
+			timeCounter++;
+			totalTime += currentTime - prevTime;
+			if(timeCounter == 100)
 			{
-				ax = gx * GRAVITY_SCALE;
-				ay = -gy * GRAVITY_SCALE; //The Y axis of the accelerometer is oposite
-				az = gz * GRAVITY_SCALE;
+				document.getElementById('fpsLabel').innerHTML = "FPS:" + Math.floor(10*(100000 / totalTime))/10;
+				totalTime = 0;
+				timeCounter = 0;
 			}
-			
-			//Function that calculates the new particle position and draws the frame
-			function draw(currentTime){
+			prevTime = currentTime;
+		}
 
+		function increaseParticles()
+		{
+			if(NUM_PARTICLES < MAX_PARTICLES)
+			{
+				NUM_PARTICLES += PARTICLE_STEP;
+			}
+			handleButtons();
+			var sendParticlesMessage = new Array();
+			sendParticlesMessage["messageName"] = "newParticle";
+			sendParticlesMessage["AMOUNT"] = NUM_PARTICLES;
+			bridge.messagehandler.send(sendParticlesMessage);
+			document.getElementById('flowLabel').innerHTML = "Particles:" + NUM_PARTICLES;
+		}
+
+		function decreaseParticles()
+		{
+			if(NUM_PARTICLES > MIN_PARTICLES)
+			{
+				NUM_PARTICLES -= PARTICLE_STEP;
+			}
+			handleButtons();
+			var sendParticlesMessage = new Array();
+			sendParticlesMessage["messageName"] = "newParticle";
+			sendParticlesMessage["AMOUNT"] = NUM_PARTICLES;
+			bridge.messagehandler.send(sendParticlesMessage);
+			document.getElementById('flowLabel').innerHTML = "Particles:" + NUM_PARTICLES;
+		}
+		
+		var enableButtonsMessage = new Array();
+		enableButtonsMessage["messageName"] = "enableButtons";
+
+		function handleButtons()
+		{
+			enableButtonsMessage["add"] = "true";
+			enableButtonsMessage["remove"] = "true";
+			
+			if(NUM_PARTICLES >= MAX_PARTICLES)
+			{
+				enableButtonsMessage["add"] = "false";
+			}
+			else if(NUM_PARTICLES <= MIN_PARTICLES)
+			{
+				enableButtonsMessage["remove"] = "false";
+			}
+			bridge.messagehandler.send(enableButtonsMessage);
+		}
+
+		function shouldRender(render) {
+			mShouldRender = render;
+		}
+		/**
+		 * Renders a particle object. The 'dots' argument
+		 * should be an array of objects which have members
+		 * x, y, width, height
+		 **/
+		function renderParticleObject(gfx, dots) {
+
+			for(var i = 0; i < dots.length; i++) {
+				var p = dots[i];
+				gfx.drawImage(particle, p.x, p.y, p.width, p.height);
+			}
+		}
+
+
+		function draw(){
+			
 				var canvas = document.getElementById('gfx');
-				
-				if (canvas.getContext){
-					var gfx = canvas.getContext('2d');
-					
-					//Set the rendering properties
-					gfx.globalCompositeOperation = 'source-over';
-					gfx.fillStyle = '#000';
-					gfx.fillRect(0, 0, innerWidth, innerHeight);
-					gfx.save(); // push state
-
-					gfx.globalCompositeOperation = 'lighter';
-					//Time since last frame 
-					var cycleTime = (currentTime - prevTime);
-					for(var i = 0; i < particles.length; i++) {
-						var p = particles[i];
-						if(p.alive ==true)
-						{
-							//Each particle's time since the last frame is
-							//usually equal to cycleTime, unless the particle
-							//has just been created. Then it has a shorter time.
-							var particleTime = cycleTime;
-							if(p.addTime > prevTime)
-							{
-								particleTime = (currentTime - p.addTime);
-							}
-							
-							//Calculate the new velocity vector
-							p.zv += az*particleTime;
-							p.xv += ax*particleTime;
-							p.yv += ay*particleTime;
-							
-							//Calculate the new position vector
-							p.z += p.zv*particleTime;
-							p.x += p.xv*particleTime;
-							p.y += p.yv*particleTime;
-							
-						}
-
-					}
-
-					//Render the particles at their new positions
-					renderParticleObject(gfx, particles);
-
-					gfx.fillStyle = '#fff';
-
-					gfx.restore();
-				}
-			}
 			
+				var gfx = canvas.getContext('2d');
+
+				gfx.globalCompositeOperation = 'source-over';
+				gfx.fillStyle = '#000';
+				gfx.fillRect(0, 0, innerWidth, innerHeight);
+				gfx.save(); // push state
+
+				var d = new Date();
+				var time = d.getTime();
+
+				var twoPI = 2*Math.PI;
+
+				gfx.globalCompositeOperation = 'lighter';
+
+				var dots = new Array(NUM_PARTICLES)
+
+				for(var i = 0; i < NUM_PARTICLES; i++) {
+					var dot = new Object();
+
+					var maxRamp = innerWidth/6 *Math.sin(time*0.00075);
+
+					var ramp = maxRamp*Math.cos(-time*0.001);
+					var r = innerWidth/radiusScale + ramp*Math.sin((numSpikes*i/NUM_PARTICLES)*twoPI);
+					var particleSize = 80 + 70*Math.sin(time*0.004 + 4*i/NUM_PARTICLES*twoPI);
+
+					dot.x = -particleSize/2 + innerWidth/2 + r*Math.cos(time*0.0005 + (i/NUM_PARTICLES)*twoPI);
+					dot.y = -particleSize/2 + innerHeight/2 + r*Math.sin(time*0.0005 + (i/NUM_PARTICLES)*twoPI);
+					dot.width = dot.height = particleSize;
+					dots[i] = dot;
+
+				}
+
+				renderParticleObject(gfx, dots);
+
+				gfx.fillStyle = '#fff';
+
+				gfx.restore();
+		}
+
+		
 			//Initialization
 			function pageLoaded()
 			{
 				//Size of the rendering enviroment that fills the webview
 				var innerWidth = document.documentElement.clientWidth - 10;
 				var innerHeight = document.documentElement.clientHeight - 10;
-				document.getElementById('flowLabel').innerHTML = "Flow:" + flow;
+				document.getElementById('flowLabel').innerHTML = "Particles:" + NUM_PARTICLES;
 				//Set the canvas
 				var canvas = document.getElementById('gfx');
 				
@@ -308,25 +183,19 @@
 				var initOGLMessage = new Array();
 				initOGLMessage["messageName"] = "initOGLVariables";
 				initOGLMessage["MAX_PARTICLES"] = MAX_PARTICLES;
-				initOGLMessage["GRAVITY_SCALE"] = Math.floor(GRAVITY_SCALE * PRECISION);
-				initOGLMessage["PARTICLE_LIFETIME"] = PARTICLE_LIFETIME;
+				initOGLMessage["AMOUNT"] = NUM_PARTICLES;
 				initOGLMessage["SCREN_WIDTH"] = innerWidth;
 				initOGLMessage["SCREEN_HEIGHT"] = innerHeight;
-				initOGLMessage["PRECISION"] = PRECISION;
+				initOGLMessage["numSpikes"] = numSpikes;
+				initOGLMessage["radiusScale"] = radiusScale;
 
 				bridge.messagehandler.send(initOGLMessage);
+				
 				
 			}
 		</script>
 		
 	</head>
-	
-	
-	
-	
-	
-	
-	
 	
 	<body onload="pageLoaded()">
 		<label id="fpsLabel" style="width:50%">FPS:</label>&nbsp;<label id="flowLabel" style="width:50%">Flow:</label><br>
